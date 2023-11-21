@@ -17,7 +17,7 @@ jobs:
       id: list-alerts
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        ORG_NAME: "<Your_Organization_Name>"
+        ORG_NAME: "Project-Testing-H1"
       run: |
         ALERTS=$(curl -H "Authorization: token $GITHUB_TOKEN" \
                  -H "Accept: application/vnd.github.v3+json" \
