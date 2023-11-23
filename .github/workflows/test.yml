@@ -1,31 +1,63 @@
-name: List Organization Code Scanning Alerts and Send to Webhook
+name: Transfer Issue
 
-on: [push, workflow_dispatch]
+on:
+  push:
 
 jobs:
-  list-org-alerts:
+  transfer-issue:
     runs-on: ubuntu-latest
-    permissions:
-      security-events: read
-      contents: read
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: List Organization Code Scanning Alerts
-      id: list-alerts
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        ORG_NAME: "Project-Testing-H1"
-      run: |
-        ALERTS=$(curl -H "Authorization: token $GITHUB_TOKEN" \
-                 -H "Accept: application/vnd.github.v3+json" \
-                 "https://api.github.com/orgs/$ORG_NAME/code-scanning/alerts")
-        echo "::set-output name=alerts::$ALERTS"
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-    - name: Send Alerts to Webhook
-      run: |
-        curl -X POST https://webhook.site/767fefb6-2d27-45ba-b023-564ca79772db \
-             -H "Content-Type: application/json" \
-             -d "${{ steps.list-alerts.outputs.alerts }}"
+      - name: Transfer Issue
+        run: |
+          const https = require('https');
+
+          const query = `
+          mutation {
+            transferIssue(input: {
+              issueId: "I_kwDOKdr2m853P6ZA"
+              repositoryId: "R_kgDOKonBCw"
+            }) {
+              clientMutationId
+            }
+          }`;
+
+          const data = JSON.stringify({
+            query: query
+          });
+
+          const options = {
+            hostname: 'api.github.com',
+            path: '/graphql',
+            method: 'POST',
+            headers: {
+              'Authorization': `bearer ${process.env.GITHUB_TOKEN}`,
+              'User-Agent': 'GitHub-Action',
+              'Content-Type': 'application/json',
+              'Content-Length': data.length
+            }
+          };
+
+          const req = https.request(options, (res) => {
+            let body = '';
+            res.on('data', (chunk) => body += chunk);
+            res.on('end', () => {
+              console.log('Response:', body);
+            });
+          });
+
+          req.on('error', (e) => {
+            console.error(e);
+          });
+
+          req.write(data);
+          req.end();
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
